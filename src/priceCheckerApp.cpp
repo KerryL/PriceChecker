@@ -49,7 +49,10 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 	time_t now(std::time(nullptr));
 	struct tm localNow(*std::localtime(&now));
 	historyToAdd << std::put_time(&localNow, "%d-%m-%Y %H:%M") << ",";
+
 	RegisterPriceCheckers();
+	PriceChecker::Initialize();
+
 	for (const auto& target : configFile.configuration.targets)
 	{
 		std::unique_ptr<PriceChecker> checker;
@@ -57,6 +60,7 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 		if (!checker)
 		{
 			std::cerr << "Failed to determine appropriate checker for '" << target << "'\n";
+			PriceChecker::Cleanup();
 			return 1;
 		}
 
@@ -64,6 +68,7 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 		if (price < 0.0)
 		{
 			std::cerr << "Failed to extract price from page for '" << target << "'\n";
+			PriceChecker::Cleanup();
 			return 1;
 		}
 
@@ -72,6 +77,7 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 
 	historyFile << historyToAdd.str() << std::endl;
 
+	PriceChecker::Cleanup();
 	return 0;
 }
 

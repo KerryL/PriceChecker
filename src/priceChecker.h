@@ -22,11 +22,16 @@ public:
 	//static bool IsThisType(const std::string& target);
 	//static std::unique_ptr<PriceChecker> CreateNew(const std::string& target);
 
+	static void Initialize();
+	static void Cleanup();
+
 protected:
 	virtual double ExtractPrice(const std::string& rawPage) const = 0;
 
 private:
 	const std::string& target;
+
+	static size_t HttpWriteCallback(void* dataIn, size_t size, size_t nmemb, void* dataOut);
 };
 
 #endif// PRICE_CHECKER_H_
