@@ -6,7 +6,13 @@
 // Local headers
 #include "amazonPriceChecker.h"
 
+// Standard C++ headers
+#include <iostream>
+#include <sstream>
+
 const std::string AmazonPriceChecker::amazonURL("www.amazon.com");
+const std::string AmazonPriceChecker::startTag("<span id=\"priceblock_ourprice\" class=\"a-size-medium a-color-price\">");
+const std::string AmazonPriceChecker::endTag("</span");
 
 bool AmazonPriceChecker::IsThisType(const std::string& target)
 {
@@ -28,6 +34,30 @@ std::unique_ptr<PriceChecker> AmazonPriceChecker::CreateNew(const std::string& t
 
 double AmazonPriceChecker::ExtractPrice(const std::string& rawPage) const
 {
-	// TODO:  Implement
-	return 0.0;
+	//std::cout << rawPage << std::endl;
+	const size_t start(rawPage.find(startTag));
+	if (start == std::string::npos)
+	{
+		std::cerr << "Failed to parse page source\n";
+		return -1.0;
+	}
+
+	const size_t end(rawPage.substr(start).find(endTag));
+	if (end == std::string::npos)
+	{
+		std::cerr << "Failed to parse page source\n";
+		return -1.0;
+	}
+
+	std::istringstream ss;
+	// Additional +1/-1 is to drop the leading dollar sign
+	ss.str(rawPage.substr(start + startTag.length() + 1, end - startTag.length() - 1));
+	double price;
+	if ((ss >> price).fail())
+	{
+		std::cerr << "Failed to convert price to number\n";
+		return -1.0;
+	}
+
+	return price;
 }

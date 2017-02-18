@@ -18,7 +18,7 @@
 PriceChecker::PriceChecker(const std::string& target) : target([target]()
 {
 	std::string lowerTarget(target);
-	std::transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), std::tolower);
+	std::transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), ::tolower);
 	return lowerTarget;
 }())
 {
@@ -66,6 +66,7 @@ size_t PriceChecker::HttpWriteCallback(void* dataIn, size_t size, size_t nmemb, 
 {
 	size_t realSize(size * nmemb);
 	std::string* data(static_cast<std::string*>(dataOut));
-	*data = std::string(static_cast<const char*>(dataIn), realSize);
+	std::string newData(static_cast<const char*>(dataIn), realSize);
+	data->append(newData);
 	return realSize;
 }

@@ -26,6 +26,8 @@ protected:
 
 private:
 	static const std::string amazonURL;
+	static const std::string startTag;
+	static const std::string endTag;
 };
 
 #endif// AMAZON_PRICE_CHECKER_H_

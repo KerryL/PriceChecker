@@ -29,7 +29,7 @@ protected:
 	virtual double ExtractPrice(const std::string& rawPage) const = 0;
 
 private:
-	const std::string& target;
+	const std::string target;
 
 	static size_t HttpWriteCallback(void* dataIn, size_t size, size_t nmemb, void* dataOut);
 };
