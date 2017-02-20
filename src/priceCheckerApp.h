@@ -8,6 +8,7 @@
 
 // Standard C++ headers
 #include <string>
+#include <fstream>
 #include <memory>
 #include <vector>
 
@@ -35,6 +36,11 @@ private:
 
 	void RegisterPriceCheckers();
 	std::vector<PriceCheckerType> checkerTypes;
+
+	void WriteColumnHeadings(std::ofstream& file, const std::vector<std::string>& targets) const;
+	bool AdjustColumnHeadings(const std::string& fileName, const std::vector<std::string>& targets) const;
+
+	static bool FileExists(const std::string& fileName);
 };
 
 #endif// PRICE_CHECKER_APP_H_

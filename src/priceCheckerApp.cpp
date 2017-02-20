@@ -65,26 +65,70 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 		historyToAdd << price << ",";
 	}
 
-	// TODO:  If columns in history file are different from current targets, adjust!
-	// TODO:  Write column headings if new file?
-	const bool needsHeadings(false);
+	const bool needsHeadings(!FileExists(configFile.configuration.priceHistoryFilePath));
+	if (!needsHeadings)
+	{
+		if (!AdjustColumnHeadings(configFile.configuration.priceHistoryFilePath, configFile.configuration.targets))
+			return 1;
+	}
 
 	std::ofstream historyFile(configFile.configuration.priceHistoryFilePath.c_str(), std::ios::app);
 	if (!historyFile.is_open() || !historyFile.good())
 	{
-		std::cerr << "Failed to open '" << configFile.configuration.priceHistoryFilePath << "'\n";
+		std::cerr << "Failed to open '" << configFile.configuration.priceHistoryFilePath << "' for output\n";
 		return 1;
 	}
 
 	if (needsHeadings)
-	{
-		// TODO:  Write column headings if new file?
-	}
+		WriteColumnHeadings(historyFile, configFile.configuration.targets);
 
 	historyFile << historyToAdd.str() << std::endl;
 
 	PriceChecker::Cleanup();
 	return 0;
+}
+
+void PriceCheckerApp::WriteColumnHeadings(std::ofstream& file,
+	const std::vector<std::string>& targets) const
+{
+	file << "Timestamp,";
+	for (const auto& target : targets)
+		file << target << ",";
+	file << "\n";
+}
+
+bool PriceCheckerApp::FileExists(const std::string& fileName)
+{
+	std::ifstream file(fileName.c_str());
+	return file.is_open() && file.good();
+}
+
+bool PriceCheckerApp::AdjustColumnHeadings(const std::string& fileName,
+	const std::vector<std::string>& targets) const
+{
+	std::ifstream inFile(fileName.c_str());
+	if (!inFile.is_open() || !inFile.good())
+	{
+		std::cerr << "Failed to open '" << fileName << "' to check column headings\n";
+		return false;
+	}
+
+	std::string line;
+	if (!std::getline(inFile, line))
+	{
+		std::cerr << "Failed to read heading row from '" << fileName << "'\n";
+		return false;
+	}
+
+	// TODO:  check that all of the same targets are listed and in the same order.
+	// If they are, return true here.
+	// If they are not, continue reading and store results.  Then, re-order, pad and/or determine padding necessary for new checks.
+
+	inFile.close();
+
+	// TODO:  Implement
+
+	return true;
 }
 
 void PriceCheckerApp::RegisterPriceCheckers()
