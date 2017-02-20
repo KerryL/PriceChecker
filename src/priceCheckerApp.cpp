@@ -35,16 +35,6 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 	if (!configFile.ReadConfiguration(configFilePath))
 		return 1;
 
-	std::ofstream historyFile(configFile.configuration.priceHistoryFilePath.c_str(), std::ios::app);
-	if (!historyFile.is_open() || !historyFile.good())
-	{
-		std::cerr << "Failed to open '" << configFile.configuration.priceHistoryFilePath << "'\n";
-		return 1;
-	}
-
-	// TODO:  If columns in history file are different from current targets, adjust!
-	// TODO:  Write column headings if new file?
-
 	std::ostringstream historyToAdd;
 	time_t now(std::time(nullptr));
 	struct tm localNow(*std::localtime(&now));
@@ -65,7 +55,7 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 		}
 
 		const double price(checker->GetCurrentPrice());
-		if (price < 0.0)
+		if (price == PriceChecker::errorPriceCode)
 		{
 			std::cerr << "Failed to extract price from page for '" << target << "'\n";
 			PriceChecker::Cleanup();
@@ -73,6 +63,22 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 		}
 
 		historyToAdd << price << ",";
+	}
+
+	// TODO:  If columns in history file are different from current targets, adjust!
+	// TODO:  Write column headings if new file?
+	const bool needsHeadings(false);
+
+	std::ofstream historyFile(configFile.configuration.priceHistoryFilePath.c_str(), std::ios::app);
+	if (!historyFile.is_open() || !historyFile.good())
+	{
+		std::cerr << "Failed to open '" << configFile.configuration.priceHistoryFilePath << "'\n";
+		return 1;
+	}
+
+	if (needsHeadings)
+	{
+		// TODO:  Write column headings if new file?
 	}
 
 	historyFile << historyToAdd.str() << std::endl;

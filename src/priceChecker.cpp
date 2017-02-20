@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <cctype>
 
+const double PriceChecker::errorPriceCode(-1.0);
+
 PriceChecker::PriceChecker(const std::string& target) : target([target]()
 {
 	std::string lowerTarget(target);
@@ -30,7 +32,7 @@ double PriceChecker::GetCurrentPrice() const
 	if (!curl)
 	{
 		std::cerr << "Failed to obtain curl handle\n";
-		return -1.0;
+		return errorPriceCode;
 	}
 
 	curl_easy_setopt(curl, CURLOPT_URL, target.c_str());
@@ -46,9 +48,10 @@ double PriceChecker::GetCurrentPrice() const
 	if (res != CURLE_OK)
 	{
 		std::cerr << "Error during GET:  " << curl_easy_strerror(res) << "\n";
-		return -1.0;
+		return errorPriceCode;
 	}
 
+	std::transform(pageSource.begin(), pageSource.end(), pageSource.begin(), ::tolower);
 	return ExtractPrice(pageSource);
 }
 

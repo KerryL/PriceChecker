@@ -12,6 +12,7 @@
 
 const std::string AmazonPriceChecker::amazonURL("www.amazon.com");
 const std::string AmazonPriceChecker::startTag("<span id=\"priceblock_ourprice\" class=\"a-size-medium a-color-price\">");
+const std::string AmazonPriceChecker::unavailableString("currently unavailable");
 const std::string AmazonPriceChecker::endTag("</span");
 
 bool AmazonPriceChecker::IsThisType(const std::string& target)
@@ -35,18 +36,22 @@ std::unique_ptr<PriceChecker> AmazonPriceChecker::CreateNew(const std::string& t
 double AmazonPriceChecker::ExtractPrice(const std::string& rawPage) const
 {
 	//std::cout << rawPage << std::endl;
+	const size_t unavailableStart(rawPage.find(unavailableString));
+	if (unavailableStart != std::string::npos)
+		return -2.0;// Users will to know that -2 means unavailable
+
 	const size_t start(rawPage.find(startTag));
 	if (start == std::string::npos)
 	{
 		std::cerr << "Failed to parse page source\n";
-		return -1.0;
+		return errorPriceCode;
 	}
 
 	const size_t end(rawPage.substr(start).find(endTag));
 	if (end == std::string::npos)
 	{
 		std::cerr << "Failed to parse page source\n";
-		return -1.0;
+		return errorPriceCode;
 	}
 
 	std::istringstream ss;
@@ -56,7 +61,7 @@ double AmazonPriceChecker::ExtractPrice(const std::string& rawPage) const
 	if ((ss >> price).fail())
 	{
 		std::cerr << "Failed to convert price to number\n";
-		return -1.0;
+		return errorPriceCode;
 	}
 
 	return price;

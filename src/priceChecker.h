@@ -25,6 +25,8 @@ public:
 	static void Initialize();
 	static void Cleanup();
 
+	static const double errorPriceCode;
+
 protected:
 	virtual double ExtractPrice(const std::string& rawPage) const = 0;
 
