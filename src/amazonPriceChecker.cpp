@@ -13,6 +13,7 @@
 const std::string AmazonPriceChecker::amazonURL("www.amazon.com");
 const std::string AmazonPriceChecker::startTag("<span id=\"priceblock_ourprice\" class=\"a-size-medium a-color-price\">");
 const std::string AmazonPriceChecker::unavailableString("currently unavailable");
+const std::string AmazonPriceChecker::notAvailableFromAmazonString("available from <a href=");
 const std::string AmazonPriceChecker::endTag("</span");
 
 bool AmazonPriceChecker::IsThisType(const std::string& target)
@@ -37,7 +38,8 @@ double AmazonPriceChecker::ExtractPrice(const std::string& rawPage) const
 {
 	//std::cout << rawPage << std::endl;
 	const size_t unavailableStart(rawPage.find(unavailableString));
-	if (unavailableStart != std::string::npos)
+	const size_t notAvailableFromAmazonStart(rawPage.find(notAvailableFromAmazonString));
+	if (unavailableStart != std::string::npos || notAvailableFromAmazonStart != std::string::npos)
 		return -2.0;// Users will to know that -2 means unavailable
 
 	const size_t start(rawPage.find(startTag));

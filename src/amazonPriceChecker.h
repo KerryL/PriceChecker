@@ -28,6 +28,7 @@ private:
 	static const std::string amazonURL;
 	static const std::string startTag;
 	static const std::string unavailableString;
+	static const std::string notAvailableFromAmazonString;
 	static const std::string endTag;
 };
 
