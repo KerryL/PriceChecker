@@ -23,6 +23,7 @@ public:
 	static void ShowUsage(const std::string& calledAs);
 
 private:
+	static const double skippedPriceCode;
 	std::unique_ptr<PriceChecker> GetPriceChecker(const std::string& target) const;
 
 	typedef bool (*TypeCheckFunction)(const std::string&);
@@ -38,9 +39,11 @@ private:
 	std::vector<PriceCheckerType> checkerTypes;
 
 	void WriteColumnHeadings(std::ofstream& file, const std::vector<std::string>& targets) const;
-	bool AdjustColumnHeadings(const std::string& fileName, const std::vector<std::string>& targets) const;
+	bool AdjustColumnHeadings(const std::string& fileName, const std::vector<std::string>& targets,
+		unsigned int& padColumnCount) const;
 
 	static bool FileExists(const std::string& fileName);
+	static std::vector<std::string> SplitBy(const std::string& s, const char& delimiter);
 };
 
 #endif// PRICE_CHECKER_APP_H_

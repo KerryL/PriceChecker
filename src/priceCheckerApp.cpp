@@ -15,6 +15,8 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <algorithm>
+#include <iterator>
 
 int main(int argc, char *argv[])
 {
@@ -29,6 +31,8 @@ int main(int argc, char *argv[])
 	return 1;
 }
 
+const double PriceCheckerApp::skippedPriceCode(-3.0);
+
 int PriceCheckerApp::Execute(const std::string& configFilePath)
 {
 	PriceCheckerConfigFile configFile;
@@ -38,7 +42,7 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 	std::ostringstream historyToAdd;
 	time_t now(std::time(nullptr));
 	struct tm localNow(*std::localtime(&now));
-	historyToAdd << std::put_time(&localNow, "%d-%m-%Y %H:%M") << ",";
+	historyToAdd << std::put_time(&localNow, "%d-%m-%Y %H:%M") << ',';
 
 	RegisterPriceCheckers();
 	PriceChecker::Initialize();
@@ -66,9 +70,11 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 	}
 
 	const bool needsHeadings(!FileExists(configFile.configuration.priceHistoryFilePath));
+	unsigned int padColumnCount(0);
 	if (!needsHeadings)
 	{
-		if (!AdjustColumnHeadings(configFile.configuration.priceHistoryFilePath, configFile.configuration.targets))
+		if (!AdjustColumnHeadings(configFile.configuration.priceHistoryFilePath,
+			configFile.configuration.targets, padColumnCount))
 			return 1;
 	}
 
@@ -82,6 +88,12 @@ int PriceCheckerApp::Execute(const std::string& configFilePath)
 	if (needsHeadings)
 		WriteColumnHeadings(historyFile, configFile.configuration.targets);
 
+	while (padColumnCount > 0)
+	{
+		historyToAdd << skippedPriceCode << ',';
+		--padColumnCount;
+	}
+
 	historyFile << historyToAdd.str() << std::endl;
 
 	PriceChecker::Cleanup();
@@ -93,8 +105,8 @@ void PriceCheckerApp::WriteColumnHeadings(std::ofstream& file,
 {
 	file << "Timestamp,";
 	for (const auto& target : targets)
-		file << target << ",";
-	file << "\n";
+		file << target << ',';
+	file << '\n';
 }
 
 bool PriceCheckerApp::FileExists(const std::string& fileName)
@@ -104,7 +116,7 @@ bool PriceCheckerApp::FileExists(const std::string& fileName)
 }
 
 bool PriceCheckerApp::AdjustColumnHeadings(const std::string& fileName,
-	const std::vector<std::string>& targets) const
+	const std::vector<std::string>& targets, unsigned int& padColumnCount) const
 {
 	std::ifstream inFile(fileName.c_str());
 	if (!inFile.is_open() || !inFile.good())
@@ -120,15 +132,84 @@ bool PriceCheckerApp::AdjustColumnHeadings(const std::string& fileName,
 		return false;
 	}
 
-	// TODO:  check that all of the same targets are listed and in the same order.
-	// If they are, return true here.
-	// If they are not, continue reading and store results.  Then, re-order, pad and/or determine padding necessary for new checks.
+	std::vector<std::string> headings(SplitBy(line, ','));
+	if (headings.size() == targets.size() + 1 &&
+		std::mismatch(headings.begin() + 1, headings.end(), targets.begin(), targets.end()).first == headings.end())
+		return true;
+
+	std::vector<std::pair<unsigned int, std::vector<std::string>>> data;
+	unsigned int i(0);
+	for (const auto& heading : headings)
+		data.push_back(std::make_pair(headings.size() + i++, std::vector<std::string>(1, heading)));
+	data[0].first = 0;
+
+	// TODO:  Does not properly handle repeated targets (i.e. same target twice) - should we check for this in config file class?
+	i = 1;
+	for (const auto& target : targets)
+	{
+		bool found(false);
+		for (auto& entry : data)
+		{
+			if (entry.second[0].compare(target) == 0)
+			{
+				entry.first = i;
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+			data.push_back(std::make_pair(i, std::vector<std::string>(1, target)));
+
+		++i;
+	}
+
+	std::ostringstream skippedCode;
+	skippedCode << skippedPriceCode;
+	while (std::getline(inFile, line))
+	{
+		std::vector<std::string> items(SplitBy(line, ','));
+		for (i = 0; i < items.size(); ++i)
+			data[i].second.push_back(items[i]);
+
+		for (; i < data.size(); ++i)
+			data[i].second.push_back(skippedCode.str());
+	}
 
 	inFile.close();
 
-	// TODO:  Implement
+	std::sort(data.begin(), data.end());
+
+	std::ofstream outFile(fileName.c_str());
+	if (!outFile.is_open() || !outFile.good())
+	{
+		std::cerr << "Failed to open '" << fileName << "' for re-write\n";
+		return false;
+	}
+
+	for (i = 0; i < data[0].second.size(); ++i)
+	{
+		unsigned int j;
+		for (j = 0; j < data.size(); ++j)
+			outFile << data[j].second[i] << ',';
+		outFile << '\n';
+	}
+
+	padColumnCount = data.size() - targets.size() - 1;
 
 	return true;
+}
+
+std::vector<std::string> PriceCheckerApp::SplitBy(const std::string& s, const char& delimiter)
+{
+	std::vector<std::string> tokens;
+	std::istringstream ss;
+	ss.str(s);
+	std::string token;
+	while (std::getline(ss, token, delimiter))
+		tokens.push_back(token);
+
+	return tokens;
 }
 
 void PriceCheckerApp::RegisterPriceCheckers()
